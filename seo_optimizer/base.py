@@ -14,12 +14,13 @@ from django.core.cache import cache
 from django.utils.translation import gettext_lazy as _
 from django.template import Template, Context
 from django.utils.safestring import mark_safe
-from django.contrib.sites.models import Site
+from django.apps import apps
 from django.utils.encoding import iri_to_uri
 from django.conf import settings
 
 from .utils import NotSet, Literal
 from .exceptions import MetadataValidationError
+
 
 T = TypeVar('T', bound='MetadataBase')
 
@@ -31,17 +32,30 @@ class AsyncCapable(Protocol):
         ...
 
 
-@dataclass
 class MetadataOptions:
-    """Configuration options for metadata"""
+    """Options for metadata classes"""
     use_cache: bool = True
     use_sites: bool = True
     use_i18n: bool = True
     use_subdomains: bool = False
     cache_prefix: str = "seo_optimizer"
-    cache_timeout: int = getattr(settings, 'SEO_CACHE_TIMEOUT', 3600)  # 1 hour
-    async_enabled: bool = getattr(settings, 'SEO_ASYNC_ENABLED', True)
-    max_async_workers: int = getattr(settings, 'SEO_MAX_ASYNC_WORKERS', 10)
+    cache_timeout: int = 3600  # 1 hour
+    async_enabled: bool = True
+    max_async_workers: int = 10
+
+    def __init__(self, **kwargs):
+        """Initialize metadata options"""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        
+        # Apply settings
+        self.async_enabled = getattr(settings, 'SEO_ASYNC_ENABLED', True)
+        self.cache_timeout = getattr(settings, 'SEO_CACHE_TIMEOUT', 3600)
+        self.max_async_workers = getattr(settings, 'SEO_MAX_ASYNC_WORKERS', 10)
+
+    def __str__(self):
+        """String representation of metadata options"""
+        return f"MetadataOptions({', '.join(f'{k}={v}' for k, v in self.__dict__.items())})"
 
 
 class FormattedMetadata:
@@ -53,7 +67,7 @@ class FormattedMetadata:
         metadata: 'MetadataBase',
         instances: List[Any],
         path: str,
-        site: Optional[Site] = None,
+        site: Optional[Any] = None,
         language: Optional[str] = None,
         subdomain: Optional[str] = None
     ):
@@ -72,7 +86,7 @@ class FormattedMetadata:
     def _generate_cache_key(
         self,
         path: str,
-        site: Optional[Site],
+        site: Optional[Any],
         language: Optional[str],
         subdomain: Optional[str]
     ) -> str:
@@ -207,21 +221,39 @@ class FormattedMetadata:
 
 
 class MetadataBase:
-    """
-    Base class for all metadata definitions with async support
-    """
+    """Base class for all metadata definitions with async support"""
     _meta: MetadataOptions
-    
-    def __init_subclass__(cls, **kwargs: Any) -> None:
+
+    def __init_subclass__(cls, **kwargs: Any):
+        """Initialize subclass with metadata options"""
         super().__init_subclass__(**kwargs)
-        cls._meta = MetadataOptions()
         
+        # Initialize metadata options from Meta class if available
+        meta_class = getattr(cls, 'Meta', None)
+        if meta_class:
+            meta_attrs = {
+                key: value for key, value in vars(meta_class).items()
+                if not key.startswith('_')
+            }
+            cls._meta = MetadataOptions(**meta_attrs)
+        else:
+            cls._meta = MetadataOptions()
+
+    def __init__(self):
+        """Initialize metadata instance"""
+        # Apply settings at instance level
+        self._meta = MetadataOptions(
+            async_enabled=getattr(settings, 'SEO_ASYNC_ENABLED', True),
+            cache_timeout=getattr(settings, 'SEO_CACHE_TIMEOUT', 3600),
+            max_async_workers=getattr(settings, 'SEO_MAX_ASYNC_WORKERS', 10)
+        )
+
     @classmethod
     async def async_get_metadata(
         cls: Type[T],
         path: str,
         context: Optional[Dict[str, Any]] = None,
-        site: Optional[Union[Site, str]] = None,
+        site: Optional[Union[Any, str]] = None,
         language: Optional[str] = None,
         subdomain: Optional[str] = None
     ) -> FormattedMetadata:
@@ -236,7 +268,7 @@ class MetadataBase:
         cls: Type[T],
         path: str,
         context: Optional[Dict[str, Any]] = None,
-        site: Optional[Union[Site, str]] = None,
+        site: Optional[Union[Any, str]] = None,
         language: Optional[str] = None,
         subdomain: Optional[str] = None
     ) -> FormattedMetadata:
@@ -251,11 +283,18 @@ class MetadataBase:
         cls: Type[T],
         path: str,
         context: Optional[Dict[str, Any]] = None,
-        site: Optional[Union[Site, str]] = None,
+        site: Optional[Union[Any, str]] = None,
         language: Optional[str] = None,
         subdomain: Optional[str] = None
     ) -> List[Any]:
         """Get metadata instances asynchronously"""
+        Site = apps.get_model('sites', 'Site')
+        
+        if isinstance(site, str):
+            site = await Site.objects.aget(domain=site)
+        elif site is None and cls._meta.use_sites:
+            site = await Site.objects.aget_current()
+        
         raise NotImplementedError("Subclasses must implement _async_get_instances")
 
     @classmethod
@@ -263,9 +302,30 @@ class MetadataBase:
         cls: Type[T],
         path: str,
         context: Optional[Dict[str, Any]] = None,
-        site: Optional[Union[Site, str]] = None,
+        site: Optional[Union[Any, str]] = None,
         language: Optional[str] = None,
         subdomain: Optional[str] = None
     ) -> List[Any]:
         """Get metadata instances synchronously"""
+        Site = apps.get_model('sites', 'Site')
+        
+        if isinstance(site, str):
+            site = Site.objects.get(domain=site)
+        elif site is None and cls._meta.use_sites:
+            site = Site.objects.get_current()
+        
         raise NotImplementedError("Subclasses must implement _get_instances")
+
+
+def register_metadata(metadata_class: Type[MetadataBase], path_pattern: str) -> None:
+    """Register a metadata class for a given path pattern"""
+    if not issubclass(metadata_class, MetadataBase):
+        raise TypeError("metadata_class must be a subclass of MetadataBase")
+    
+    if not hasattr(metadata_class, '_meta'):
+        metadata_class._meta = MetadataOptions()
+    
+    # Store the registration for later use
+    if not hasattr(MetadataBase, '_registry'):
+        MetadataBase._registry = {}
+    MetadataBase._registry[path_pattern] = metadata_class
