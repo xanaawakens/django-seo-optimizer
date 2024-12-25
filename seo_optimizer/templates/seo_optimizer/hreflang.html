@@ -1,0 +1,3 @@
+{% for tag in hreflang_tags %}
+<link rel="alternate" hreflang="{{ tag.hreflang }}" href="{{ tag.href }}" />
+{% endfor %}
