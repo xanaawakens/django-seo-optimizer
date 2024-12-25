@@ -1,0 +1,36 @@
+name: Branch Rules
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+      - production
+
+jobs:
+  check_branch_rules:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Check PR Source and Target
+        run: |
+          # Không cho phép PR từ production vào main
+          if [[ "${{ github.head_ref }}" == "production" && "${{ github.base_ref }}" == "main" ]]; then
+            echo "❌ Pull requests from production to main are not allowed"
+            exit 1
+          fi
+          
+          # Chỉ cho phép merge vào production từ main
+          if [[ "${{ github.base_ref }}" == "production" && "${{ github.head_ref }}" != "main" ]]; then
+            echo "❌ Only main branch can be merged into production"
+            exit 1
+          fi
+          
+          # Feature branches chỉ có thể merge vào develop
+          if [[ "${{ github.head_ref }}" =~ ^feature/ && "${{ github.base_ref }}" != "develop" ]]; then
+            echo "❌ Feature branches can only be merged into develop"
+            exit 1
+          fi
+          
+          echo "✅ Branch rules check passed"
