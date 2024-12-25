@@ -1,6 +1,6 @@
 # Django SEO Optimizer
 
-[![PyPI version](https://badge.fury.io/py/django-seo-optimizer.svg)](https://badge.fury.io/py/django-seo-optimizer)
+[![PyPI version](https://img.shields.io/pypi/v/django-seo-optimizer.svg)](https://pypi.org/project/django-seo-optimizer/)
 [![Python Versions](https://img.shields.io/pypi/pyversions/django-seo-optimizer.svg)](https://pypi.org/project/django-seo-optimizer/)
 [![Django Versions](https://img.shields.io/pypi/djversions/django-seo-optimizer.svg)](https://pypi.org/project/django-seo-optimizer/)
 [![License](https://img.shields.io/github/license/avixiii-dev/django-seo-optimizer.svg)](https://github.com/avixiii-dev/django-seo-optimizer/blob/main/LICENSE)
