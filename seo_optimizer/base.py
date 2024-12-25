@@ -32,6 +32,28 @@ class AsyncCapable(Protocol):
         ...
 
 
+class MetadataField:
+    """Base class for metadata fields"""
+    def __init__(self, default=NotSet, required=False, validators=None):
+        self.default = default
+        self.required = required
+        self.validators = validators or []
+        
+    def clean(self, value: Any) -> Any:
+        """Clean and validate the field value"""
+        if value is NotSet and self.default is not NotSet:
+            value = self.default() if callable(self.default) else self.default
+            
+        if value is NotSet and self.required:
+            raise MetadataValidationError("This field is required")
+            
+        if value is not NotSet:
+            for validator in self.validators:
+                validator(value)
+                
+        return value
+
+
 class MetadataOptions:
     """Options for metadata classes"""
     use_cache: bool = True
