@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "django-seo-optimizer"
-version = "1.0.0"
+version = "1.0.1"
 authors = [
   { name="avixiii", email="contact@avixiii.com" },
 ]
@@ -41,3 +41,6 @@ dependencies = [
 "Homepage" = "https://github.com/avixiii-dev/django-seo-optimizer"
 "Documentation" = "https://avixiii.com/django-seo-optimizer"
 "Bug Tracker" = "https://github.com/avixiii-dev/django-seo-optimizer/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["seo_optimizer"]
