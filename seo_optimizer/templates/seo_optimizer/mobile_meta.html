@@ -1,0 +1,20 @@
+{# Mobile Meta Tags #}
+<meta name="viewport" content="{{ metadata.viewport }}">
+<meta name="theme-color" content="{{ metadata.theme_color }}">
+<meta name="apple-mobile-web-app-capable" content="{{ metadata.apple_mobile_web_app_capable }}">
+<meta name="format-detection" content="telephone={{ metadata.format_detection.telephone|yesno:'yes,no' }}">
+<meta name="format-detection" content="date={{ metadata.format_detection.date|yesno:'yes,no' }}">
+<meta name="format-detection" content="address={{ metadata.format_detection.address|yesno:'yes,no' }}">
+<meta name="format-detection" content="email={{ metadata.format_detection.email|yesno:'yes,no' }}">
+
+{% if metadata.smart_app_banner %}
+<meta name="apple-itunes-app" content="{{ metadata.smart_app_banner }}">
+{% endif %}
+
+{% if metadata.manifest %}
+<link rel="manifest" href="{{ metadata.manifest }}">
+{% endif %}
+
+{% if amp_url %}
+<link rel="amphtml" href="{{ amp_url }}">{# Link to AMP version #}
+{% endif %}
