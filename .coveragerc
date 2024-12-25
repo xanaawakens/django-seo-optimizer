@@ -1,0 +1,20 @@
+[run]
+source = seo_optimizer
+omit =
+    */migrations/*
+    */tests/*
+    */admin.py
+    */apps.py
+    */urls.py
+    manage.py
+    setup.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if self.debug:
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    pass
+    raise ImportError
