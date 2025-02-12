@@ -425,5 +425,5 @@ Created and maintained by [avixiii](https://avixiii.com).
 ## Support
 
 - Documentation: [avixiii.com/django-seo-optimizer](https://avixiii.com/django-seo-optimizer)
-- Source Code: [github.com/avixiii-dev/django-seo-optimizer](https://github.com/avixiii-dev/django-seo-optimizer)
-- Issue Tracker: [github.com/avixiii-dev/django-seo-optimizer/issues](https://github.com/avixiii-dev/django-seo-optimizer/issues)
+- Source Code: [github.com/avixiii-dev/django-seo-optimizer](https://github.com/xanaawakens/django-seo-optimizer)
+- Issue Tracker: [github.com/avixiii-dev/django-seo-optimizer/issues](https://github.com/xanaawakens/django-seo-optimizer/issues)
